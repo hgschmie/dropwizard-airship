@@ -180,7 +180,7 @@ def create_app_symlinks(options):
     Symlink the 'etc' and 'plugin' directory into the data directory.
 
     This is needed to support programs that reference 'etc/xyz' from within
-    their config files: log.levels-file=etc/log.properties
+    their config files.
     """
     if options.install_path != options.data_dir:
         create_symlink(
@@ -197,10 +197,6 @@ def build_java_execution(options, daemon):
         raise Exception('Launcher config file is missing: %s' % options.launcher_config)
 
     properties = options.properties.copy()
-
-    if daemon:
-        properties['log.output-file'] = options.server_log
-        properties['log.enable-console'] = 'false'
 
     jvm_properties = load_lines(options.jvm_config)
     launcher_properties = load_properties(options.launcher_config)
@@ -345,12 +341,12 @@ def create_parser():
     parser = OptionParser(prog='launcher', usage='usage: %prog [options] command', description=commands)
     parser.add_option('-v', '--verbose', action='store_true', default=False, help='Run verbosely')
     parser.add_option('--launcher-config', metavar='FILE', help='Defaults to INSTALL_PATH/bin/launcher.properties')
-    parser.add_option('--server-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/server.yml')
+    parser.add_option('--node-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/node.properties')
     parser.add_option('--jvm-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/jvm.config')
+    parser.add_option('--server-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/server.yml')
     parser.add_option('--data-dir', metavar='DIR', help='Defaults to INSTALL_PATH')
     parser.add_option('--pid-file', metavar='FILE', help='Defaults to DATA_DIR/var/run/launcher.pid')
     parser.add_option('--launcher-log-file', metavar='FILE', help='Defaults to DATA_DIR/var/log/launcher.log (only in daemon mode)')
-    parser.add_option('--server-log-file', metavar='FILE', help='Defaults to DATA_DIR/var/log/server.log (only in daemon mode)')
     parser.add_option('-D', action='append', metavar='NAME=VALUE', dest='properties', help='Set a Java system property')
     return parser
 
@@ -361,12 +357,8 @@ def parse_properties(parser, args):
         if '=' not in arg:
             parser.error('property is malformed: %s' % arg)
         key, value = [i.strip() for i in arg.split('=', 1)]
-        if key == 'config':
-            parser.error('cannot specify config using -D option (use --config)')
-        if key == 'log.output-file':
-            parser.error('cannot specify server log using -D option (use --server-log-file)')
-        if key == 'log.levels-file':
-            parser.error('cannot specify log levels using -D option (use --log-levels-file)')
+        if key == 'server-config':
+            parser.error('cannot specify server config using -D option (use --server-config)')
         properties[key] = value
     return properties
 
@@ -407,16 +399,27 @@ def main():
     o.verbose = options.verbose
     o.install_path = install_path
     o.launcher_config = realpath(options.launcher_config or pathjoin(o.install_path, 'bin/launcher.properties'))
-    o.server_config = realpath(options.server_config or pathjoin(o.install_path, 'etc/server.yml'))
+    o.node_config = realpath(options.node_config or pathjoin(o.install_path, 'etc/node.properties'))
     o.jvm_config = realpath(options.jvm_config or pathjoin(o.install_path, 'etc/jvm.config'))
+    o.server_config = realpath(options.server_config or pathjoin(o.install_path, 'etc/server.yml'))
 
-    o.data_dir = realpath(options.data_dir or o.install_path)
+    if options.node_config and not exists(o.node_config):
+        parser.error('Node config file is missing: %s' % o.node_config)
+
+    node_properties = {}
+    if exists(o.node_config):
+        node_properties = load_properties(o.node_config)
+
+    data_dir = node_properties.get('node.data-dir')
+    o.data_dir = realpath(options.data_dir or data_dir or o.install_path)
 
     o.pid_file = realpath(options.pid_file or pathjoin(o.data_dir, 'var/run/launcher.pid'))
     o.launcher_log = realpath(options.launcher_log_file or pathjoin(o.data_dir, 'var/log/launcher.log'))
-    o.server_log = realpath(options.server_log_file or pathjoin(o.data_dir, 'var/log/server.log'))
 
     o.properties = parse_properties(parser, options.properties or {})
+    for k, v in node_properties.iteritems():
+        if k not in o.properties:
+            o.properties[k] = v
 
     if o.verbose:
         print_options(o)
