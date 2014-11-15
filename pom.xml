@@ -23,7 +23,7 @@
 
     <groupId>de.softwareforge.airship</groupId>
     <artifactId>dropwizard-airship</artifactId>
-    <version>1</version>
+    <version>2-SNAPSHOT</version>
     <name>dropwizard-airship</name>
     <packaging>pom</packaging>
 
@@ -31,7 +31,7 @@
         <connection>scm:git:git@github.com:Hgschmie/dropwizard-airship.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/Hgschmie/dropwizard-airship.git</developerConnection>
         <url>git@github.com:Hgschmie/dropwizard-airship.git</url>
-        <tag>dropwizard-airship-1</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
