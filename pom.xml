@@ -27,6 +27,13 @@
     <name>dropwizard-airship</name>
     <packaging>pom</packaging>
 
+    <scm>
+        <connection>scm:git:git@github.com:Hgschmie/dropwizard-airship.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/Hgschmie/dropwizard-airship.git</developerConnection>
+        <url>git@github.com:Hgschmie/dropwizard-airship.git</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <modules>
         <module>packaging</module>
         <module>launcher</module>
