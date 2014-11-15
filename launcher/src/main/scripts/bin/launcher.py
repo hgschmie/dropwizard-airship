@@ -201,6 +201,11 @@ def build_java_execution(options, daemon):
     jvm_properties = load_lines(options.jvm_config)
     launcher_properties = load_properties(options.launcher_config)
 
+    environment_properties = {}
+    if exists(options.environment_file):
+        props = load_properties(options.environment_file)
+        environment_properties = ['-D%s=%s' % i for i in props.iteritems()]
+
     try:
         main_class = launcher_properties['main-class']
     except KeyError:
@@ -210,7 +215,7 @@ def build_java_execution(options, daemon):
     classpath = pathjoin(options.install_path, 'lib', '*')
 
     command = ['java', '-cp', classpath]
-    command += jvm_properties + system_properties
+    command += jvm_properties + system_properties + environment_properties
     command += [main_class]
     command += [ 'server', options.server_config ]
 
@@ -344,6 +349,7 @@ def create_parser():
     parser.add_option('--node-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/node.properties')
     parser.add_option('--jvm-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/jvm.config')
     parser.add_option('--server-config', metavar='FILE', help='Defaults to INSTALL_PATH/etc/server.yml')
+    parser.add_option('--environment-file', metavar='FILE', help='Defaults to INSTALL_PATH/etc/environment.properties')
     parser.add_option('--data-dir', metavar='DIR', help='Defaults to INSTALL_PATH')
     parser.add_option('--pid-file', metavar='FILE', help='Defaults to DATA_DIR/var/run/launcher.pid')
     parser.add_option('--launcher-log-file', metavar='FILE', help='Defaults to DATA_DIR/var/log/launcher.log (only in daemon mode)')
@@ -412,6 +418,8 @@ def main():
 
     data_dir = node_properties.get('node.data-dir')
     o.data_dir = realpath(options.data_dir or data_dir or o.install_path)
+
+    o.environment_file = realpath(node_properties.get('node.environment-file') or options.environment_file)
 
     o.pid_file = realpath(options.pid_file or pathjoin(o.data_dir, 'var/run/launcher.pid'))
     o.launcher_log = realpath(options.launcher_log_file or pathjoin(o.data_dir, 'var/log/launcher.log'))
